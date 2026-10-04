@@ -31,20 +31,22 @@ _start:
 adft:
 
     adrp    x10, TWO_PI
-    add     x10, x10, :lo12:DOS_PI
+    add     x10, x10, :lo12:TWO_PI
 
     ldr     s2, [x10] // 2pi in s2
     scvtf s1, r2 // N
 
     mov x12, xzr 
     mov x10, xzr 
+    mov x20, xzr // x[n] index for imaginary parts
+    mov x21, xzr // x[n] index for real parts
     mov x9, x2
     
     fdiv    s0, s2, s1      // s0 = 2pi / N
     
-    // N in r2. 
-    // k in r3.
-    // n in r12.
+    // N in x2. 
+    // k in x3.
+    // n in x12.
     // sin and cos expects argument in s0 for float or d0 for double.
     
     // re = cos(2pi/N * kn)
@@ -55,7 +57,6 @@ adft:
     
     // loop N.
     loop:
-    
     
         // substract N
         sub x9, x9, 1
@@ -71,7 +72,7 @@ adft:
         // load 4 floats to v0.
         ld1 {v0.4s}, [x0]
         
-        // calculate 4 Fourier bins corresponding to offset x10 in x0, and store in v1 simd.
+        // calculate 4 Fourier bins corresponding to offset x10 in x0, and store in v1 simd (real part)
         
         // k * n 
         mul x13, x12, x3
@@ -82,32 +83,221 @@ adft:
         // s0 = (k * n) * 2pi/n 
         
         fmul    s0, s4, s1  
+        
+        
+        fcvt d0, s0 
         bl cos
         
+        // get x[n]
+        add x0, x0, x21 
         
-
+        // x[n]
+        mov s7, [x0]
         
-
+        fcvt s7, d7 
+        
+        // d0 = cos(2pikn/N) * x[n]
+        fmul d0, d7 
+        
+        
+        fcvt s0, d0 
+        ins v1.s[0], v0.s[0]
         
         
         
         
+        add x21, x21, 1
+        add x12, x12, 1
+        mul x13, x12, x3
+        scvtf s4, x13 
         
         
         
-        // prepare x[n] v2 simd register 
+        fmul    s0, s4, s1  
+        fcvt d0, s0 
+        bl cos
         
-        // multiply (v0 + v1) * v2.
+        add x0, x0, x21 
+        
+        // x[n]
+        mov s7, [x0]
+        
+        fcvt s7, d7 
+        fmul d0, d7 
+        
+        sub x0, x0, x21 
+        
+        ins v1.s[1], v0.s[0]
+        
+        
+        add x21, x21, 1
+        add x12, x12, 1
+        mul x13, x12, x3
+        scvtf s4, x13 
+        
+        fmul    s0, s4, s1  
+        fcvt d0, s0 
+        bl cos
+        
+        add x0, x0, x21 
+        
+        // x[n]
+        mov s7, [x0]
+        
+        fcvt s7, d7 
+        fmul d0, d7 
+        
+        sub x0, x0, x21
+        
+        
+        ins v1.s[2], v0.s[0]
+        
+        
+        
+        add x21, x21, 1
+        
+        add x12, x12, 1
+        mul x13, x12, x3
+        scvtf s4, x13 
+        
+        fmul    s0, s4, s1  
+        fcvt d0, s0 
+        bl cos
+        
+        add x0, x0, x21 
+        
+        // x[n]
+        mov s7, [x0]
+        
+        fcvt s7, d7 
+        fmul d0, d7 
+        
+        sub x0, x0, x21
+        
+        ins v1.s[3], v0.s[0]
+        
+         
+        // compute 4 Fourier bins corresponding to offset x10 in x0, and store in v2 simd (imaginary part)
+        
+        add x12, x12, 1
+        
+        mul x13, x12, x3
+        scvtf s4, x13 
+        
+        
+        
+        fmul    s0, s4, s1  
+        fcvt d0, s0 
+        bl sin
+        
+        add x0, x0, x20
+        
+        // x[n]
+        mov s7, [x0]
+        
+        fcvt s7, d7 
+        fmul d0, d7 
+        
+        ins v2.s[0], v0.s[0]
+        
+        
+        
+        
+        add x20, x20, 1
+        add x12, x12, 1
+        
+        mul x13, x12, x3
+        scvtf s4, x13 
+        
+        
+        
+        fmul    s0, s4, s1  
+        fcvt d0, s0 
+        bl sin
+        
+        add x0, x0, x20
+        
+        // x[n]
+        mov s7, [x0]
+        
+        fcvt s7, d7 
+        fmul d0, d7 
+        
+        sub x0, x0, x20
+        
+        
+        ins v2.s[1], v0.s[0]
+        
+        add x20, x20, 1
+        add x12, x12, 1
+        
+        mul x13, x12, x3
+        scvtf s4, x13 
+        
+        
+        
+        fmul    s0, s4, s1  
+        fcvt d0, s0 
+        bl sin
+        
+        add x0, x0, x20
+        
+        // x[n]
+        mov s7, [x0]
+        
+        fcvt s7, d7 
+        fmul d0, d7 
+        
+        sub x0, x0, x20
+        
+        
+        ins v2.s[2], v0.s[0]
+        
+        
+        
+        add x20, x20, 1
+        add x12, x12, 1
+        
+        mul x13, x12, x3
+        scvtf s4, x13 
+        
+        
+        
+        fmul    s0, s4, s1  
+        fcvt d0, s0 
+        bl sin
+        
+        add x0, x0, x20
+        
+        // x[n]
+        mov s7, [x0]
+        
+        fcvt s7, d7 
+        fmul d0, d7 
+        
+        sub x0, x0, x20
+        
+        
+        ins v2.s[3], v0.s[0]
+        
+        // with imaginary part in v2 and real part in v1, add all of them. acumulate in s9 and s10.
+        
+        faddp s9, v1.4s,v1.4s 
+        faddp s10, v2.4s,v2.4s 
+        
+        
         
         // increment x0 offset.
         add x10, x10, 4
-        add x12, x12, 1
         
         
         b loop 
         
     
     end:
+        // compute complex number magnitude.
+        
+        // return it to C.
         ret 
 
     
