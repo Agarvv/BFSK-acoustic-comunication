@@ -72,10 +72,10 @@ fwrite(&header, sizeof(header), 1, wav);
           
 
  
- // 2500hz means 1 
- // 2000hz means 0
+ // 1500hz means 1 
+ // 2500hz means 0
  
- // f(t) = sin((2pi) * (2000 | 2500) * (n/s_rate))
+ // f(t) = sin((2pi) * (1500 | 2500) * (n/s_rate))
  
  double n = 0; 
  unsigned int total_samples = 0;
