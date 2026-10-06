@@ -47,7 +47,9 @@ adft:
     
 loop:
 
-   
+   pe:
+    B pe 
+    
     // substract N
     SUB     x9, x9, 1
     CMP     x9, 0 
@@ -362,7 +364,6 @@ loop:
     // increment x0 offset.
     ADD     x10, x10, 4
 
-    
     
     B loop 
 
