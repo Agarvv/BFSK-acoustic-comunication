@@ -9,10 +9,10 @@ int main(void)
 {
     // setup
     
-    
+    /* 
     pa_sample_spec ss = {
     .format   = PA_SAMPLE_S16LE, // pcm 16 bit little endian
-    .rate     = 44100,           // 44.1 kHz
+    .rate     = 16000,           // 16 kHz
     .channels = 1                //mono
     };
     
@@ -43,9 +43,10 @@ int main(void)
     //int pa_simple_read(pa_simple *s, void *data, size_t bytes, int *error);
     
     // 4410 Samples per 0,1s window
-    int16_t samples[4410];
+    */
+    int16_t samples[1600];
     size_t c = sizeof(samples) / sizeof(samples[0]);
-
+    
     float samples_float[c];
     
     /* while(1) {
@@ -66,13 +67,13 @@ int main(void)
         
         printf("Ohyj C\n");
         
-        adft(&samples_float[0], 4410, 1);
+        adft(&samples_float[0], 1600, 1);
         
         printf("OK C\n");
         
    // }
 
     
-    pa_simple_free(mic);
+    //;pa_simple_free(mic);
     
 }

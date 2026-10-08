@@ -1,8 +1,9 @@
 .section .rodata
 
 msg:
-.ascii "polla\n"
+.asciz "xd\n"
 
+.align 2           
 TWO_PI:
 .float 6.2831853072
 
@@ -12,6 +13,10 @@ TWO_PI:
 // .global main 
 .extern sin
 .extern cos
+
+
+pru:
+b pru 
 
 
 adft:
@@ -43,29 +48,29 @@ adft:
     // im = -sin(2pi/r2 * r3 * r12)
 
     // loop N.
-    
+    mov x3, #4
+    udiv x1, x1, x3 
+
     
 loop:
-
-   pe:
-    B pe 
     
-    // substract N
-    SUB     x9, x9, 1
-    CMP     x9, 0 
-
-    // if equal 0, end loop.
-    B.EQ    end 
-
     // x0 offset. 
     
-    ADD     x0, x0, x10
+    // ADD     x0, x0, x10
 
     // load 4 floats to v0.
     
     // E
     // LD1     {v0.4s}, [x0] 
     
+    cmp   x21, #0
+   cinc  x21, x21, NE
+
+
+    cmp   x20, #0
+cinc  x20, x20, NE
+
+
     
 
     // calculate 4 Fourier bins corresponding to offset x10 in x0, and store in v1 simd (real part)
@@ -86,7 +91,7 @@ loop:
     mov x29, sp
     
     mov x28, x0 
-    BL      cos
+    // BL      cos
     mov x0, x28
     
     ldp x29, x30, [sp], 16
@@ -104,11 +109,15 @@ loop:
     FMUL    d0, d0, d7  
 
     FCVT    s0, d0 
+    SUB     x0, x0, x21 
     INS     v1.s[0], v0.s[0]
+
 
 
     ADD     x21, x21, 1
     ADD     x12, x12, 1
+    
+    
     MUL     x13, x12, x2
     SCVTF   s4, x13 
 
@@ -120,7 +129,7 @@ loop:
     mov x29, sp
     
     mov x28, x0 
-    BL      cos
+    // BL      cos
     mov x0, x28
     
     ldp x29, x30, [sp], 16
@@ -132,6 +141,7 @@ loop:
     LDR     s7, [x0]
 
     FCVT    s7, d7 
+    
     FMUL    d0, d0, d7    
 
     SUB     x0, x0, x21 
@@ -141,6 +151,8 @@ loop:
 
     ADD     x21, x21, 1
     ADD     x12, x12, 1
+    
+    
     MUL     x13, x12, x2
     SCVTF   s4, x13 
 
@@ -152,12 +164,12 @@ loop:
     mov x29, sp
     
     mov x28, x0 
-    BL      cos
+    // BL      cos
     mov x0, x28
     
     ldp x29, x30, [sp], 16
     
-
+    
     ADD     x0, x0, x21 
 
     // x[n]
@@ -174,9 +186,23 @@ loop:
 
 
 
-    ADD     x21, x21, 1
 
+
+
+
+
+
+
+
+
+
+
+
+    ADD     x21, x21, 1
     ADD     x12, x12, 1
+    
+    
+    
     MUL     x13, x12, x2
     SCVTF   s4, x13 
 
@@ -188,7 +214,7 @@ loop:
     mov x29, sp
     
     mov x28, x0 
-    BL      cos
+    // BL      cos
     mov x0, x28
     
     ldp x29, x30, [sp], 16
@@ -209,6 +235,7 @@ loop:
     INS     v1.s[3], v0.s[0]
 
 
+
     // compute 4 Fourier bins corresponding to offset x10 in x0, and store in v2 simd (imaginary part)
 
     ADD     x12, x12, 1
@@ -226,7 +253,7 @@ loop:
     mov x29, sp
     
     mov x28, x0 
-    BL      sin
+    // BL      sin
     mov x0, x28
     
     ldp x29, x30, [sp], 16
@@ -240,7 +267,8 @@ loop:
 
     FCVT    s7, d7 
     FMUL    d0, d0, d7  
-
+   
+    SUB     x0, x0, x20
     INS     v2.s[0], v0.s[0]
 
 
@@ -262,7 +290,7 @@ loop:
     mov x29, sp
     
     mov x28, x0 
-    BL      sin
+    // BL      sin
     mov x0, x28
     
     ldp x29, x30, [sp], 16
@@ -295,7 +323,7 @@ loop:
     mov x29, sp
     
     mov x28, x0 
-    BL      sin
+    // BL      sin
     mov x0, x28
     
     ldp x29, x30, [sp], 16
@@ -314,7 +342,7 @@ loop:
 
 
     INS     v2.s[2], v0.s[0]
-
+    
 
 
     ADD     x20, x20, 1
@@ -332,7 +360,7 @@ loop:
     mov x29, sp
     
     mov x28, x0 
-    BL      sin
+    // BL      sin
     mov x0, x28
     
     ldp x29, x30, [sp], 16
@@ -351,6 +379,8 @@ loop:
 
 
     INS     v2.s[3], v0.s[0]
+    
+
 
     // with imaginary part in v2 and real part in v1, add all of them. acumulate in s9 and s10.
 
@@ -365,13 +395,24 @@ loop:
     ADD     x10, x10, 4
 
     
+    
+    CMP     x1, 0 
+
+    // if equal 0, end loop.
+    B.EQ    end 
+    
+    sub x1, x1, 1
+
     B loop 
 
 
 end:
+   
     // compute complex number magnitude.
     FSUB    s9, s9, s10 
     FSQRT   s0, s9
+    
+    b end 
     
     
 
