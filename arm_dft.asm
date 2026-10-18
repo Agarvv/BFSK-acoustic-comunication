@@ -1,5 +1,9 @@
 .section .rodata
 
+fmt_s9:
+.asciz "s9=%f\n"        
+
+
 msg:
 .asciz "xd\n"
 
@@ -13,10 +17,8 @@ TWO_PI:
 // .global main 
 .extern sin
 .extern cos
-
-
-pru:
-b pru 
+.extern printf 
+.extern hypot 
 
 adft:
     ADRP    x10, TWO_PI
@@ -70,32 +72,13 @@ adft:
     
 
 
-    cmp   x20, #0
-    cinc  x20, x20, NE
-    cinc  x20, x20, NE
-    cinc  x20, x20, NE
-    cinc  x20, x20, NE
-    
-    cmp x24, #0 
-    cinc x24, x24, NE 
-    
-
-    
-
     // calculate 4 Fourier bins corresponding to offset x10 in x0, and store in v8 simd (real part)
 
 
 mov x25, #1600
+    fmov s9, #0.0   
 rb:
-    cmp   x21, #0
-    cinc  x21, x21, NE
-    cinc  x21, x21, NE
-    cinc  x21, x21, NE
-    cinc  x21, x21, NE
-    
-    cmp x23, #0 
-    cinc x23, x23, NE 
-   
+
     // k * n 
     MUL     x13, x23, x2
 
@@ -140,15 +123,21 @@ rb:
     
     // acumulate in s9 for real part
     fadd s9, s9, s0     
-
-
-
-    ADD     x21, x21, 1
-    ADD     x23, x23, 1
     
-    sub x25, x25, #1      
-    cmp x25, 0 
+    
+    
+    ADD     x21, x21, 4
+    ADD     x23, x23, 1
+
+
+      sub x25, x25, #1  
+    cmp x25, 0
+    
     b.ne rb
+    
+    
+    
+    
     
 
 
@@ -226,7 +215,7 @@ ib:
     fadd s9, s9, s0 
 
 
-    ADD     x20, x20, 1
+    ADD     x20, x20, 4
     ADD     x14, x14, 1
     
     sub x25, x25, #1      
@@ -237,10 +226,12 @@ ib:
 
     // compute final magnitude.
     
+         
     
-    pep:
-    b pep 
-    
+    fmul  s9, s9, s9       
+    fmul  s10, s10, s10    
+    fadd  s9, s9, s10      
+    fsqrt s0, s9           
 
 
     //FINISH
