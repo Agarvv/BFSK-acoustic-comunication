@@ -18,7 +18,6 @@ TWO_PI:
 pru:
 b pru 
 
-
 adft:
     ADRP    x10, TWO_PI
     ADD     x10, x10, :lo12:TWO_PI
@@ -34,7 +33,7 @@ adft:
     MOV     x21, xzr // x[n] index for real parts
     MOV     x9, x1
 
-    FDIV    s0, s2, s1 // s0 = 2pi / N
+    FDIV    s16, s2, s1 // s16 = 2pi / N
     
     // N in x1. 
     // k in x2.
@@ -48,10 +47,11 @@ adft:
     // im = -sin(2pi/r2 * r3 * r12)
 
     // loop N.
-    mov x3, #4
+    mov x3, #16
     udiv x1, x1, x3 
 
     
+
 loop:
     
     // x0 offset. 
@@ -65,15 +65,21 @@ loop:
     
     cmp   x21, #0
    cinc  x21, x21, NE
+   cinc  x21, x21, NE
+   cinc  x21, x21, NE
+   cinc  x21, x21, NE
 
 
     cmp   x20, #0
-cinc  x20, x20, NE
+    cinc  x20, x20, NE
+    cinc  x20, x20, NE
+    cinc  x20, x20, NE
+    cinc  x20, x20, NE
 
 
     
 
-    // calculate 4 Fourier bins corresponding to offset x10 in x0, and store in v1 simd (real part)
+    // calculate 4 Fourier bins corresponding to offset x10 in x0, and store in v8 simd (real part)
 
     // k * n 
     MUL     x13, x12, x2
@@ -82,19 +88,24 @@ cinc  x20, x20, NE
     SCVTF   s4, x13 
 
     // s0 = (k * n) * 2pi/n 
-
-    FMUL    s0, s4, s1 
+    FMUL    s0, s4, s16
 
 
     FCVT    d0, s0 
-    stp x29, x30, [sp, -16]!
-    mov x29, sp
+    sub     sp, sp, #32
+    stp     x29, x30, [sp, #0]
+    str     x1,       [sp, #16]
+    mov     x29, sp
     
-    mov x28, x0 
-    // BL      cos
-    mov x0, x28
+    mov     x28, x0 
+    STR     S16, [SP, #24]
+    BL      cos
+    LDR     S16, [SP, #24]
+    mov     x0, x28
     
-    ldp x29, x30, [sp], 16
+    ldr     x1,       [sp, #16]
+    ldp     x29, x30, [sp, #0]
+    add     sp, sp, #32
     
 
     // get x[n]
@@ -103,18 +114,19 @@ cinc  x20, x20, NE
     // x[n]
     LDR     s7, [x0]
 
-    FCVT    s7, d7 
+    FCVT    d7, s7
+
 
     // d0 = cos(2pikn/N) * x[n]
     FMUL    d0, d0, d7  
 
     FCVT    s0, d0 
     SUB     x0, x0, x21 
-    INS     v1.s[0], v0.s[0]
+    INS     v8.s[0], v0.s[0]
 
 
 
-    ADD     x21, x21, 1
+    ADD     x21, x21, 4
     ADD     x12, x12, 1
     
     
@@ -122,17 +134,23 @@ cinc  x20, x20, NE
     SCVTF   s4, x13 
 
 
-    FMUL    s0, s4, s1 
+    FMUL    s0, s4, s16
+    
     FCVT    d0, s0
+    sub     sp, sp, #32
+    stp     x29, x30, [sp, #0]
+    str     x1,       [sp, #16]
+    mov     x29, sp
     
-    stp x29, x30, [sp, -16]!
-    mov x29, sp
+    mov     x28, x0 
+    STR     S16, [SP, #24]
+    BL      cos
+    LDR     S16, [SP, #24]
+    mov     x0, x28
     
-    mov x28, x0 
-    // BL      cos
-    mov x0, x28
-    
-    ldp x29, x30, [sp], 16
+    ldr     x1,       [sp, #16]
+    ldp     x29, x30, [sp, #0]
+    add     sp, sp, #32
     
 
     ADD     x0, x0, x21 
@@ -140,34 +158,42 @@ cinc  x20, x20, NE
     // x[n]
     LDR     s7, [x0]
 
-    FCVT    s7, d7 
+    FCVT    d7, s7
+
     
     FMUL    d0, d0, d7    
-
+    
+    FCVT    s0, d0 
     SUB     x0, x0, x21 
 
-    INS     v1.s[1], v0.s[0]
+
+    INS     v8.s[1], v0.s[0]
 
 
-    ADD     x21, x21, 1
+    ADD     x21, x21, 4
     ADD     x12, x12, 1
     
     
     MUL     x13, x12, x2
     SCVTF   s4, x13 
 
-    FMUL    s0, s4, s1 
+    FMUL    s0, s4, s16
     FCVT    d0, s0 
     
+    sub     sp, sp, #32
+    stp     x29, x30, [sp, #0]
+    str     x1,       [sp, #16]
+    mov     x29, sp
     
-    stp x29, x30, [sp, -16]!
-    mov x29, sp
+    mov     x28, x0 
+    STR     S16, [SP, #24]
+    BL      cos
+    LDR     S16, [SP, #24]
+    mov     x0, x28
     
-    mov x28, x0 
-    // BL      cos
-    mov x0, x28
-    
-    ldp x29, x30, [sp], 16
+    ldr     x1,       [sp, #16]
+    ldp     x29, x30, [sp, #0]
+    add     sp, sp, #32
     
     
     ADD     x0, x0, x21 
@@ -175,30 +201,17 @@ cinc  x20, x20, NE
     // x[n]
     LDR     s7, [x0]
 
-    FCVT    s7, d7 
+    FCVT    d7, s7
+
     FMUL    d0, d0, d7    // d0 = d0 * d7
 
-
+    FCVT    s0, d0 
     SUB     x0, x0, x21
 
 
-    INS     v1.s[2], v0.s[0]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    ADD     x21, x21, 1
+    INS     v8.s[2], v0.s[0]
+  
+    ADD     x21, x21, 4
     ADD     x12, x12, 1
     
     
@@ -206,18 +219,23 @@ cinc  x20, x20, NE
     MUL     x13, x12, x2
     SCVTF   s4, x13 
 
-    FMUL    s0, s4, s1 
+    FMUL    s0, s4, s16
     FCVT    d0, s0 
     
+    sub     sp, sp, #32
+    stp     x29, x30, [sp, #0]
+    str     x1,       [sp, #16]
+    mov     x29, sp
     
-    stp x29, x30, [sp, -16]!
-    mov x29, sp
+    mov     x28, x0 
+    STR     S16, [SP, #24]
+    BL      cos
+    LDR     S16, [SP, #24]
+    mov     x0, x28
     
-    mov x28, x0 
-    // BL      cos
-    mov x0, x28
-    
-    ldp x29, x30, [sp], 16
+    ldr     x1,       [sp, #16]
+    ldp     x29, x30, [sp, #0]
+    add     sp, sp, #32
     
     
     
@@ -226,37 +244,43 @@ cinc  x20, x20, NE
     // x[n]
     LDR     s7, [x0]
 
-    FCVT    s7, d7 
+    FCVT    d7, s7
+
     FMUL    d0, d0, d7  
 
-
+    FCVT    s0, d0 
     SUB     x0, x0, x21
 
-    INS     v1.s[3], v0.s[0]
+    INS     v8.s[3], v0.s[0]
 
 
 
-    // compute 4 Fourier bins corresponding to offset x10 in x0, and store in v2 simd (imaginary part)
+    // compute 4 Fourier bins corresponding to offset x10 in x0, and store in v9 simd (imaginary part)
 
     ADD     x12, x12, 1
-
+    
     MUL     x13, x12, x2
     SCVTF   s4, x13 
 
 
 
-    FMUL    s0, s4, s1 
+    FMUL    s0, s4, s16
     FCVT    d0, s0 
     
+    sub     sp, sp, #32
+    stp     x29, x30, [sp, #0]
+    str     x1,       [sp, #16]
+    mov     x29, sp
     
-    stp x29, x30, [sp, -16]!
-    mov x29, sp
+    mov     x28, x0 
+    STR     S16, [SP, #24]
+    BL      sin
+    LDR     S16, [SP, #24]
+    mov     x0, x28
     
-    mov x28, x0 
-    // BL      sin
-    mov x0, x28
-    
-    ldp x29, x30, [sp], 16
+    ldr     x1,       [sp, #16]
+    ldp     x29, x30, [sp, #0]
+    add     sp, sp, #32
     
 
     ADD     x0, x0, x20
@@ -265,16 +289,18 @@ cinc  x20, x20, NE
     LDR     s7, [x0]
 
 
-    FCVT    s7, d7 
+    FCVT    d7, s7
+
     FMUL    d0, d0, d7  
    
+    FCVT    s0, d0 
     SUB     x0, x0, x20
-    INS     v2.s[0], v0.s[0]
+    INS     v9.s[0], v0.s[0]
 
 
 
 
-    ADD     x20, x20, 1
+    ADD     x20, x20, 4
     ADD     x12, x12, 1
 
     MUL     x13, x12, x2
@@ -282,33 +308,40 @@ cinc  x20, x20, NE
 
 
 
-    FMUL    s0, s4, s1 
+    FMUL    s0, s4, s16
     FCVT    d0, s0 
     
+    sub     sp, sp, #32
+    stp     x29, x30, [sp, #0]
+    str     x1,       [sp, #16]
+    mov     x29, sp
     
-    stp x29, x30, [sp, -16]!
-    mov x29, sp
+    mov     x28, x0 
+    STR     S16, [SP, #24]
+    BL      sin
+    LDR     S16, [SP, #24]
+    mov     x0, x28
     
-    mov x28, x0 
-    // BL      sin
-    mov x0, x28
-    
-    ldp x29, x30, [sp], 16
+    ldr     x1,       [sp, #16]
+    ldp     x29, x30, [sp, #0]
+    add     sp, sp, #32
 
     ADD     x0, x0, x20
 
     // x[n]
     LDR     s7, [x0]
 
-    FCVT    s7, d7 
-    FMUL    d0, d0, d7  
+    FCVT    d7, s7
 
+    FMUL    d0, d0, d7  
+    
+    FCVT    s0, d0 
     SUB     x0, x0, x20
 
 
-    INS     v2.s[1], v0.s[0]
+    INS     v9.s[1], v0.s[0]
 
-    ADD     x20, x20, 1
+    ADD     x20, x20, 4
     ADD     x12, x12, 1
 
     MUL     x13, x12, x2
@@ -316,17 +349,23 @@ cinc  x20, x20, NE
 
 
 
-    FMUL    s0, s4, s1 
+    FMUL    s0, s4, s16
     FCVT    d0, s0 
     
-    stp x29, x30, [sp, -16]!
-    mov x29, sp
+    sub     sp, sp, #32
+    stp     x29, x30, [sp, #0]
+    str     x1,       [sp, #16]
+    mov     x29, sp
     
-    mov x28, x0 
-    // BL      sin
-    mov x0, x28
+    mov     x28, x0 
+    STR     S16, [SP, #24]
+    BL      sin
+    LDR     S16, [SP, #24]
+    mov     x0, x28
     
-    ldp x29, x30, [sp], 16
+    ldr     x1,       [sp, #16]
+    ldp     x29, x30, [sp, #0]
+    add     sp, sp, #32
     
     
     ADD     x0, x0, x20
@@ -335,17 +374,19 @@ cinc  x20, x20, NE
     LDR     s7, [x0]
 
 
-    FCVT    s7, d7 
-    FMUL    d0, d0, d7  
+    FCVT    d7, s7
 
+    FMUL    d0, d0, d7  
+    
+    FCVT    s0, d0 
     SUB     x0, x0, x20
 
 
-    INS     v2.s[2], v0.s[0]
+    INS     v9.s[2], v0.s[0]
     
 
 
-    ADD     x20, x20, 1
+    ADD     x20, x20, 4
     ADD     x12, x12, 1
 
     MUL     x13, x12, x2
@@ -353,17 +394,23 @@ cinc  x20, x20, NE
 
 
 
-    FMUL    s0, s4, s1 
+    FMUL    s0, s4, s16
     FCVT    d0, s0 
     
-    stp x29, x30, [sp, -16]!
-    mov x29, sp
+    sub     sp, sp, #32
+    stp     x29, x30, [sp, #0]
+    str     x1,       [sp, #16]
+    mov     x29, sp
     
-    mov x28, x0 
-    // BL      sin
-    mov x0, x28
+    mov     x28, x0 
+    STR     S16, [SP, #24]
+    BL      sin
+    LDR     S16, [SP, #24]
+    mov     x0, x28
     
-    ldp x29, x30, [sp], 16
+    ldr     x1,       [sp, #16]
+    ldp     x29, x30, [sp, #0]
+    add     sp, sp, #32
 
 
     ADD     x0, x0, x20
@@ -371,28 +418,24 @@ cinc  x20, x20, NE
     // x[n]
     LDR     s7, [x0]
 
-    FCVT    s7, d7 
+    FCVT    s7, d7  
     FMUL    d0, d0, d7  
 
-
+    FCVT    s0, d0 
     SUB     x0, x0, x20
 
 
-    INS     v2.s[3], v0.s[0]
+    INS     v9.s[3], v0.s[0]
     
 
 
-    // with imaginary part in v2 and real part in v1, add all of them. acumulate in s9 and s10.
+    // with imaginary part in v9 and real part in v8, add all of them. acumulate in s9 and s10.
+    
 
-    FADDP   v9.4s, v1.4s, v1.4s
-    FADDP   v9.4s, v9.4s, v9.4s
-
-    FADDP   v10.4s, v2.4s, v2.4s
-    FADDP   s10, v10.2s
-     
+    
 
     // increment x0 offset.
-    ADD     x10, x10, 4
+    // ADD     x10, x10, 4
 
     
     
@@ -403,16 +446,18 @@ cinc  x20, x20, NE
     
     sub x1, x1, 1
 
-    B loop 
+    B loop
+
 
 
 end:
    
+    b end 
     // compute complex number magnitude.
     FSUB    s9, s9, s10 
     FSQRT   s0, s9
     
-    b end 
+    
     
     
 
