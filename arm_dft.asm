@@ -31,13 +31,18 @@ adft:
     MOV     x10, xzr 
     MOV     x20, xzr // x[n] index for imaginary parts
     MOV     x21, xzr // x[n] index for real parts
+    MOV x23, xzr
+    MOV x24, xzr 
+    
+    
     MOV     x9, x1
 
     FDIV    s16, s2, s1 // s16 = 2pi / N
     
     // N in x1. 
     // k in x2.
-    // n in x12.
+    // n real in x23.
+    // n im in x24.
     // sin and cos expects argument in s0 for float or d0 for double.
 
     // re = cos(2pi/N * kn)
@@ -46,14 +51,14 @@ adft:
     // re = cos(2pi/r2 * r3 * r12)
     // im = -sin(2pi/r2 * r3 * r12)
 
-    // loop N.
-    mov x3, #16
-    udiv x1, x1, x3 
 
-    
 
-loop:
-    
+
+
+
+
+
+
     // x0 offset. 
     
     // ADD     x0, x0, x10
@@ -63,11 +68,6 @@ loop:
     // E
     // LD1     {v0.4s}, [x0] 
     
-    cmp   x21, #0
-   cinc  x21, x21, NE
-   cinc  x21, x21, NE
-   cinc  x21, x21, NE
-   cinc  x21, x21, NE
 
 
     cmp   x20, #0
@@ -75,14 +75,29 @@ loop:
     cinc  x20, x20, NE
     cinc  x20, x20, NE
     cinc  x20, x20, NE
-
+    
+    cmp x24, #0 
+    cinc x24, x24, NE 
+    
 
     
 
     // calculate 4 Fourier bins corresponding to offset x10 in x0, and store in v8 simd (real part)
 
+
+mov x25, #1600
+rb:
+    cmp   x21, #0
+    cinc  x21, x21, NE
+    cinc  x21, x21, NE
+    cinc  x21, x21, NE
+    cinc  x21, x21, NE
+    
+    cmp x23, #0 
+    cinc x23, x23, NE 
+   
     // k * n 
-    MUL     x13, x12, x2
+    MUL     x13, x23, x2
 
     // k * n 
     SCVTF   s4, x13 
@@ -122,144 +137,57 @@ loop:
 
     FCVT    s0, d0 
     SUB     x0, x0, x21 
-    INS     v8.s[0], v0.s[0]
+    
+    // acumulate in s9 for real part
+    fadd s9, s9, s0     
 
 
 
-    ADD     x21, x21, 4
-    ADD     x12, x12, 1
+    ADD     x21, x21, 1
+    ADD     x23, x23, 1
     
-    
-    MUL     x13, x12, x2
-    SCVTF   s4, x13 
-
-
-    FMUL    s0, s4, s16
-    
-    FCVT    d0, s0
-    sub     sp, sp, #32
-    stp     x29, x30, [sp, #0]
-    str     x1,       [sp, #16]
-    mov     x29, sp
-    
-    mov     x28, x0 
-    STR     S16, [SP, #24]
-    BL      cos
-    LDR     S16, [SP, #24]
-    mov     x0, x28
-    
-    ldr     x1,       [sp, #16]
-    ldp     x29, x30, [sp, #0]
-    add     sp, sp, #32
+    sub x25, x25, #1      
+    cmp x25, 0 
+    b.ne rb
     
 
-    ADD     x0, x0, x21 
-
-    // x[n]
-    LDR     s7, [x0]
-
-    FCVT    d7, s7
-
-    
-    FMUL    d0, d0, d7    
-    
-    FCVT    s0, d0 
-    SUB     x0, x0, x21 
-
-
-    INS     v8.s[1], v0.s[0]
-
-
-    ADD     x21, x21, 4
-    ADD     x12, x12, 1
-    
-    
-    MUL     x13, x12, x2
-    SCVTF   s4, x13 
-
-    FMUL    s0, s4, s16
-    FCVT    d0, s0 
-    
-    sub     sp, sp, #32
-    stp     x29, x30, [sp, #0]
-    str     x1,       [sp, #16]
-    mov     x29, sp
-    
-    mov     x28, x0 
-    STR     S16, [SP, #24]
-    BL      cos
-    LDR     S16, [SP, #24]
-    mov     x0, x28
-    
-    ldr     x1,       [sp, #16]
-    ldp     x29, x30, [sp, #0]
-    add     sp, sp, #32
-    
-    
-    ADD     x0, x0, x21 
-
-    // x[n]
-    LDR     s7, [x0]
-
-    FCVT    d7, s7
-
-    FMUL    d0, d0, d7    // d0 = d0 * d7
-
-    FCVT    s0, d0 
-    SUB     x0, x0, x21
-
-
-    INS     v8.s[2], v0.s[0]
-  
-    ADD     x21, x21, 4
-    ADD     x12, x12, 1
-    
-    
-    
-    MUL     x13, x12, x2
-    SCVTF   s4, x13 
-
-    FMUL    s0, s4, s16
-    FCVT    d0, s0 
-    
-    sub     sp, sp, #32
-    stp     x29, x30, [sp, #0]
-    str     x1,       [sp, #16]
-    mov     x29, sp
-    
-    mov     x28, x0 
-    STR     S16, [SP, #24]
-    BL      cos
-    LDR     S16, [SP, #24]
-    mov     x0, x28
-    
-    ldr     x1,       [sp, #16]
-    ldp     x29, x30, [sp, #0]
-    add     sp, sp, #32
-    
-    
-    
-    ADD     x0, x0, x21 
-
-    // x[n]
-    LDR     s7, [x0]
-
-    FCVT    d7, s7
-
-    FMUL    d0, d0, d7  
-
-    FCVT    s0, d0 
-    SUB     x0, x0, x21
-
-    INS     v8.s[3], v0.s[0]
 
 
 
-    // compute 4 Fourier bins corresponding to offset x10 in x0, and store in v9 simd (imaginary part)
 
-    ADD     x12, x12, 1
-    
-    MUL     x13, x12, x2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+mov x25, #1600
+// imaginary
+ib: 
+    MUL     x13, x24, x2
     SCVTF   s4, x13 
 
 
@@ -295,172 +223,25 @@ loop:
    
     FCVT    s0, d0 
     SUB     x0, x0, x20
-    INS     v9.s[0], v0.s[0]
+    fadd s9, s9, s0 
 
 
-
-
-    ADD     x20, x20, 4
-    ADD     x12, x12, 1
-
-    MUL     x13, x12, x2
-    SCVTF   s4, x13 
-
-
-
-    FMUL    s0, s4, s16
-    FCVT    d0, s0 
+    ADD     x20, x20, 1
+    ADD     x14, x14, 1
     
-    sub     sp, sp, #32
-    stp     x29, x30, [sp, #0]
-    str     x1,       [sp, #16]
-    mov     x29, sp
-    
-    mov     x28, x0 
-    STR     S16, [SP, #24]
-    BL      sin
-    LDR     S16, [SP, #24]
-    mov     x0, x28
-    
-    ldr     x1,       [sp, #16]
-    ldp     x29, x30, [sp, #0]
-    add     sp, sp, #32
-
-    ADD     x0, x0, x20
-
-    // x[n]
-    LDR     s7, [x0]
-
-    FCVT    d7, s7
-
-    FMUL    d0, d0, d7  
-    
-    FCVT    s0, d0 
-    SUB     x0, x0, x20
-
-
-    INS     v9.s[1], v0.s[0]
-
-    ADD     x20, x20, 4
-    ADD     x12, x12, 1
-
-    MUL     x13, x12, x2
-    SCVTF   s4, x13 
-
-
-
-    FMUL    s0, s4, s16
-    FCVT    d0, s0 
-    
-    sub     sp, sp, #32
-    stp     x29, x30, [sp, #0]
-    str     x1,       [sp, #16]
-    mov     x29, sp
-    
-    mov     x28, x0 
-    STR     S16, [SP, #24]
-    BL      sin
-    LDR     S16, [SP, #24]
-    mov     x0, x28
-    
-    ldr     x1,       [sp, #16]
-    ldp     x29, x30, [sp, #0]
-    add     sp, sp, #32
-    
-    
-    ADD     x0, x0, x20
-
-    // x[n]
-    LDR     s7, [x0]
-
-
-    FCVT    d7, s7
-
-    FMUL    d0, d0, d7  
-    
-    FCVT    s0, d0 
-    SUB     x0, x0, x20
-
-
-    INS     v9.s[2], v0.s[0]
+    sub x25, x25, #1      
+    cmp x25, #0 
+    b.ne ib 
     
 
 
-    ADD     x20, x20, 4
-    ADD     x12, x12, 1
-
-    MUL     x13, x12, x2
-    SCVTF   s4, x13 
-
-
-
-    FMUL    s0, s4, s16
-    FCVT    d0, s0 
+    // compute final magnitude.
     
-    sub     sp, sp, #32
-    stp     x29, x30, [sp, #0]
-    str     x1,       [sp, #16]
-    mov     x29, sp
     
-    mov     x28, x0 
-    STR     S16, [SP, #24]
-    BL      sin
-    LDR     S16, [SP, #24]
-    mov     x0, x28
-    
-    ldr     x1,       [sp, #16]
-    ldp     x29, x30, [sp, #0]
-    add     sp, sp, #32
-
-
-    ADD     x0, x0, x20
-
-    // x[n]
-    LDR     s7, [x0]
-
-    FCVT    s7, d7  
-    FMUL    d0, d0, d7  
-
-    FCVT    s0, d0 
-    SUB     x0, x0, x20
-
-
-    INS     v9.s[3], v0.s[0]
+    pep:
+    b pep 
     
 
 
-    // with imaginary part in v9 and real part in v8, add all of them. acumulate in s9 and s10.
-    
-
-    
-
-    // increment x0 offset.
-    // ADD     x10, x10, 4
-
-    
-    
-    CMP     x1, 0 
-
-    // if equal 0, end loop.
-    B.EQ    end 
-    
-    sub x1, x1, 1
-
-    B loop
-
-
-
-end:
-   
-    b end 
-    // compute complex number magnitude.
-    FSUB    s9, s9, s10 
-    FSQRT   s0, s9
-    
-    
-    
-    
-
-
-    // return it to C.
+    //FINISH
     RET
