@@ -56,18 +56,32 @@ while (1) {
     for (size_t i = 0; i < c; i++) {
         samples_float[i] = (float)samples[i];
     }
-
-    float r0 = adft(samples_float, 1600, 150);
-    float r1 = adft(samples_float, 1600, 250);
     
-    if (r0 > r1) {
-     printf("0");
-     fflush(stdout);
-    } else {
-      printf("1");
-     fflush(stdout);
+    for(int i = 0; i < 8; i++) {
+        int bit = 0;
+        int byte = 0; 
+        
+        float r0 = adft(samples_float, 1600, 150);
+        float r1 = adft(samples_float, 1600, 250);
+    
+        if (r0 > r1) {
+            bit = 0;
+           printf("0");
+           fflush(stdout);
+        } else {
+            bit = 1; 
+            printf("1");
+            fflush(stdout);
+        }
+    
+        byte = (byte | (bit << i));
+        
+        printf("Preambulo: %d\n", byte); 
+    
+    
     }
 
+    
 
 }
 

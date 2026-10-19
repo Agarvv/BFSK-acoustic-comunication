@@ -2,6 +2,10 @@
 #include <math.h>
 #include <stdint.h>
 
+unsigned int total_samples = 0;
+unsigned int data_size = 0;
+ 
+ 
 typedef struct {
     char     riff[4];           // "RIFF"
     uint32_t file_size;
@@ -70,7 +74,35 @@ size_t fread(void *ptr, size_t size, size_t count, FILE *stream);
 
 fwrite(&header, sizeof(header), 1, wav);
           
+// Preamble: 5 bytes of 0xAA (10101010)
+unsigned char preamble[5] = {
+    0xAA, 0xAA, 0xAA, 0xAA, 0xAA
+};
 
+for (int p = 0; p < 5; p++) {
+    unsigned char c = preamble[p];
+
+    for (int i = 0; i < 8; i++) {
+        unsigned char bit = (c >> i) & 1;
+        double frequency = bit ? 1500.0 : 2500.0;
+
+        double samples_per_bit = 0.1 * header.sample_rate;
+
+        for (int s = 0; s < (int)samples_per_bit; s++) {
+            double sample = sin(
+                2.0 * M_PI * frequency * total_samples
+                / header.sample_rate
+            );
+
+            int16_t pcm = (int16_t)(sample * 32767);
+
+            fwrite(&pcm, sizeof(pcm), 1, wav);
+
+            data_size += sizeof(pcm);
+            total_samples++;
+        }
+    }
+}
  
  // 1500hz means 1 
  // 2500hz means 0
@@ -78,8 +110,7 @@ fwrite(&header, sizeof(header), 1, wav);
  // f(t) = sin((2pi) * (1500 | 2500) * (n/s_rate))
  
  double n = 0; 
- unsigned int total_samples = 0;
- unsigned int data_size = 0;
+ 
  for(int i = 0; i < fsize; i++) {
      printf("fsize: %lo\n", fsize);
      unsigned char c = buff[i]; 
