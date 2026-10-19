@@ -7,6 +7,12 @@ extern float adft(float* entry, int N, int K);
 void parse();
 
 
+int p = 0; 
+int bit = 0;
+    int byte = 0;
+int rb = 0; 
+
+
 int main(void)
 {
 // setup
@@ -46,6 +52,9 @@ size_t c = sizeof(samples) / sizeof(samples[0]);
 
 float samples_float[c];
 
+
+
+
 while (1) {
     int e = pa_simple_read(mic, samples, sizeof(samples), &err);
 
@@ -59,15 +68,34 @@ while (1) {
         samples_float[i] = (float)samples[i];
     }
     
+    /* 
     for(int i = 0; i < 8; i++) {
         int bit = 0;
         int byte = 0; 
         
-        float r0 = adft(samples_float, 1600, 150);
-        float r1 = adft(samples_float, 1600, 250);
+        
     
-        if (r0 > r1) {
-            bit = 0;
+        byte = (byte | (bit << i));
+        
+       // printf("Preambulo: %d\n", byte); 
+        
+        if(byte == 0xAA) {
+            parse();
+        }
+    
+    
+    } 
+    */ 
+    
+    
+    
+    
+    float r0 = adft(samples_float, 1600, 150);
+    float r1 = adft(samples_float, 1600, 250);
+    rb = rb + 1600; 
+    
+    if (r0 > r1) {
+           bit = 0;
            printf("0");
            fflush(stdout);
         } else {
@@ -75,17 +103,29 @@ while (1) {
             printf("1");
             fflush(stdout);
         }
-    
-        byte = (byte | (bit << i));
         
-        printf("Preambulo: %d\n", byte); 
-        
-        if(byte == 0xAA) {
+    byte = (byte | (bit << p));
+    p++; 
+    printf("c: %d\n", p);
+    if(p == 8 && byte == 0xAA) {
+            if(rb == 64000) {
             parse();
-        }
+            }
+            printf("waiting preamble finish.\n");
+    } 
     
+    
+    
+    
+    
+    if(p == 8) {
+       printf("Pre: %d\n", byte);
+        byte = 0; 
+    p = 0;
     
     }
+
+    
 
     
 
@@ -96,5 +136,8 @@ pa_simple_free(mic);
 }
 
 void parse() {
-    printf("Preamble OK.\n");
+    printf("Preamble OK. %d\n", rb);
+    
+    
+    while(1);
 }
