@@ -4,6 +4,8 @@
 #include <pulse/error.h>
 
 extern float adft(float* entry, int N, int K);
+void parse();
+
 
 int main(void)
 {
@@ -77,6 +79,10 @@ while (1) {
         byte = (byte | (bit << i));
         
         printf("Preambulo: %d\n", byte); 
+        
+        if(byte == 0xAA) {
+            parse();
+        }
     
     
     }
@@ -87,4 +93,8 @@ while (1) {
 
 pa_simple_free(mic);
 
+}
+
+void parse() {
+    printf("Preamble OK.\n");
 }
